@@ -4,7 +4,7 @@
 
 from ealgis_common.db import DataLoaderFactory
 from ealgis_common.util import make_logger
-from ealgis_common.loaders import ZipAccess, ShapeLoader, MapInfoLoader, KMLLoader, GeoPackageLoader
+from ealgis_common.loaders import ZipAccess, WebZipAccess, ShapeLoader, MapInfoLoader, KMLLoader, GeoPackageLoader
 from datetime import datetime
 import os.path
 
@@ -34,6 +34,12 @@ def load_shapes(factory, basedir, tmpdir):
             instance = ShapeLoader(loader.dbschema(), shpfile, srid, table_name=table_name)
             instance.load(loader)
 
+    def load_shapefile_from_s3(table_name, url, srid):
+        with WebZipAccess(None, tmpdir, url) as z:
+            shpfile = one(z.glob('*.shp'))
+            instance = ShapeLoader(loader.dbschema(), shpfile, srid, table_name=table_name)
+            instance.load(loader)
+
     def load_kml(table_name, filename):
         instance = KMLLoader(loader.dbschema(), filename, table_name=table_name)
         instance.load(loader)
@@ -44,27 +50,33 @@ def load_shapes(factory, basedir, tmpdir):
             instance = GeoPackageLoader(loader.dbschema(), gpkgfile, layer_name, table_name=table_name)
             instance.load(loader)
 
+    def load_geopackage_from_s3(table_name, url, layer_name):
+        with WebZipAccess(None, tmpdir, url) as z:
+            gpkgfile = one(z.glob('*.gpkg'))
+            instance = GeoPackageLoader(loader.dbschema(), gpkgfile, layer_name, table_name=table_name)
+            instance.load(loader)
+
     GDA94 = 4283
     shapes = {
         ('asgs_2019_boundaries', 'ASGS 2019 Boundaries'): [
             ('asgs_2019_lga', 'Local Government Areas 2019', '2019/1270055003_asgs_2019_vol_3_aust_gpkg.zip', load_geopackage, ('LGA_2019_AUST',)),
         ],
         ('asgs_2018_boundaries', 'ASGS 2018 Boundaries'): [
-            ('asgs_2018_lga', 'Local Government Areas 2018', '2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage, ('LGA_2018_AUST',)),
-            ('asgs_2018_ced', 'Commonwealth Electoral Divisions 2018', '2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage, ('CED_2018_AUST',)),
-            ('asgs_2018_sed', 'State Electoral Divisions ASGS 2018', '2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage, ('SED_2018_AUST',)),
+            ('asgs_2018_lga', 'Local Government Areas 2018', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('LGA_2018_AUST',)),
+            ('asgs_2018_ced', 'Commonwealth Electoral Divisions 2018', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('CED_2018_AUST',)),
+            ('asgs_2018_sed', 'State Electoral Divisions ASGS 2018', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2018/1270055003_asgs_2018_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('SED_2018_AUST',)),
         ],
         ('asgs_2017_boundaries', 'ASGS 2017 Boundaries'): [
-            ('asgs_2017_lga', 'Local Government Areas 2017', '2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage, ('LGA_2017_AUST',)),
-            ('asgs_2017_ced', 'Commonwealth Electoral Divisions 2017', '2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage, ('CED_2017_AUST',)),
-            ('asgs_2017_sed', 'State Electoral Divisions ASGS 2017', '2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage, ('SED_2017_AUST',)),
+            ('asgs_2017_lga', 'Local Government Areas 2017', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('LGA_2017_AUST',)),
+            ('asgs_2017_ced', 'Commonwealth Electoral Divisions 2017', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('CED_2017_AUST',)),
+            ('asgs_2017_sed', 'State Electoral Divisions ASGS 2017', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2017/1270055003_asgs_2017_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('SED_2017_AUST',)),
         ],
         ('asgs_2016_boundaries', 'ASGS 2016 Boundaries'): [
-            ('asgs_2016_add', 'Australian Drainage Divisions 2016', '2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage, ('ADD_2016_AUST',)),
-            ('asgs_2016_nrmr', 'Natural Resource Management Regions 2016', '2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage, ('NRMR_2016_AUST',)),
-            ('asgs_2016_tr', 'Tourism Regions 2016', '2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage, ('TR_2016_AUST',)),
+            ('asgs_2016_add', 'Australian Drainage Divisions 2016', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('ADD_2016_AUST',)),
+            ('asgs_2016_nrmr', 'Natural Resource Management Regions 2016', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('NRMR_2016_AUST',)),
+            ('asgs_2016_tr', 'Tourism Regions 2016', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2016/1270055003_asgs_2016_vol_3_aust_gpkg.zip', load_geopackage_from_s3, ('TR_2016_AUST',)),
             ('asgs_2016_dzn', 'Destination Zones 2016', '2016/80000_dzn_2016_aust_geopackage.zip', load_geopackage, ('DZN_2016_AUST',)),
-            ('asgs_2016_mb', 'Mesh Blocks 2016', '2016/1270055001_ASGS_2016_vol_1_geopackage.zip', load_geopackage, ('MB_2016_AUST',)),
+            ('asgs_2016_mb', 'Mesh Blocks 2016', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2016/1270055001_ASGS_2016_vol_1_geopackage.zip', load_geopackage_from_s3, ('MB_2016_AUST',)),
         ],
         ('asgs_2015_boundaries', 'ASGS 2015 Boundaries'): [
             ('asgs_2015_lga', 'Local Government Areas 2015', '2015/1270055003_lga_2015_aust_shape.zip', load_shapefile, (GDA94,)),
@@ -88,7 +100,7 @@ def load_shapes(factory, basedir, tmpdir):
             ('asgs_2011_nrmr', 'Natural Resource Management Regions 2011', '2011/1270055003_nrmr_2011_aust_shape.zip', load_shapefile, (GDA94,)),
             ('asgs_2011_tr', 'Tourism Regions 2011', '2011/1270055003_tr_2011_aust_shape.zip', load_shapefile, (GDA94,)),
             ('asgs_2011_dzn', 'Destination Zones 2011', '2011/80000_dzn_2011_aust_shape.zip', load_shapefile, (GDA94,)),
-            ('asgs_2011_mb', 'Mesh Blocks 2011', '2011/1270055001_mb_2011_shape.zip', load_shapefile, (GDA94,)),
+            ('asgs_2011_mb', 'Mesh Blocks 2011', 'https://s3-ap-southeast-2.amazonaws.com/ealgis/data-public/asgs/2011/1270055001_mb_2011_shape.zip', load_shapefile_from_s3, (GDA94,)),
         ],
     }
 
@@ -101,8 +113,10 @@ def load_shapes(factory, basedir, tmpdir):
                 date_published=datetime(2019, 8, 23, 0, 0, 0),  # Set in UTC
                 description='Collected geometries from the ABS\'s ASGS')
             loader.session.commit()
-            for table_name, description, zip_path, loader_fn, loader_args in to_load:
-                loader_fn(table_name, os.path.join(basedir, zip_path), *loader_args)
+            for table_name, description, zip_path_or_url, loader_fn, loader_args in to_load:
+                filename_or_url = zip_path_or_url if zip_path_or_url.startswith("https://") is True else os.path.join(basedir, zip_path_or_url)
+
+                loader_fn(table_name, filename_or_url, *loader_args)
                 loader.set_table_metadata(table_name, {'description': description})
             results.append(loader.result())
     return results
